@@ -1,9 +1,0 @@
-Data/Hora: 17/02/2026 16:52:39
-Host: WIN-VCLMFIS8VEN  Usuario: mirante
-ERP: 1.0.0  Modulo: C:\Users\mirante\observabilidade_delphi\ObservabilidadeDemo.exe
-Classe: Exception
-Mensagem: Falha de teste para validar envio GELF
-
-Stack trace:
-(00274103){ObservabilidadeDemo.exe} [00495103] Unknown function at __dbk_fcall_wrapper + $26397B
-

@@ -1,4 +1,4 @@
-﻿unit uGraylogClient;
+unit uGraylogClient;
 {
   Cliente Graylog compatível com GELF 1.1.
   - Suporta UDP (com compressão zlib) e TCP (terminado por #0).
@@ -109,7 +109,7 @@ end;
 
 function TGraylogClient.SendJSON(const AJson: string): Boolean;
 var
-  Data, Compressed: TIdBytes;
+  Data: TIdBytes;
   NullByte: TIdBytes;
 begin
   Result := False;
@@ -124,15 +124,21 @@ begin
     end
     else
     begin
-      if not FTCP.Connected then
+      if Assigned(FTCP) then
+      begin
         FTCP.ConnectTimeout := FConnectTimeoutMs;
-      if not FTCP.Connected then
+        FTCP.ReadTimeout := FSendTimeoutMs;
         FTCP.Connect;
-      FTCP.IOHandler.Write(Data);
-      SetLength(NullByte, 1);
-      NullByte[0] := 0;
-      FTCP.IOHandler.Write(NullByte);
-      Result := True;
+        try
+          FTCP.IOHandler.Write(Data);
+          SetLength(NullByte, 1);
+          NullByte[0] := 0;
+          FTCP.IOHandler.Write(NullByte);
+          Result := True;
+        finally
+          FTCP.Disconnect;
+        end;
+      end;
     end;
   except
     on E: Exception do
