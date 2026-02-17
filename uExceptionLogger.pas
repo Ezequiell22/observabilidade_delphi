@@ -19,10 +19,8 @@ type
     class function GetUserName: string; static;
     class function GetModuleName: string; static;
   public
-    class procedure Initialize(const GraylogHost: string; GraylogPort: Integer; const ERPVersion: string;
-      Protocol: TTransportProtocol = tpUDP); overload;
     class procedure Initialize(const GraylogHost: string; GraylogPort: Integer; const ERPVersion, CompanyName,
-      BranchId: string; Protocol: TTransportProtocol = tpUDP); overload;
+      BranchId: string; Protocol: TTransportProtocol = tpUDP);
     class procedure FinalizeLogger;
     class procedure HandleException(Sender: TObject; E: Exception);
     class procedure LogMessage(const Level: TLogLevel; const ShortMsg, FullMsg: string);
@@ -65,12 +63,6 @@ begin
     Result := Buffer
   else
     Result := '';
-end;
-
-class procedure TExceptionLogger.Initialize(const GraylogHost: string; GraylogPort: Integer;
-  const ERPVersion: string; Protocol: TTransportProtocol);
-begin
-  Initialize(GraylogHost, GraylogPort, ERPVersion, '', '', Protocol);
 end;
 
 class procedure TExceptionLogger.Initialize(const GraylogHost: string; GraylogPort: Integer;

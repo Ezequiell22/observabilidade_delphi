@@ -97,7 +97,12 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="uExceptionLogger.pas"/>
+        <DCCReference Include="uGraylogClient.pas"/>
+        <DCCReference Include="uLocalLog.pas"/>
+        <DCCReference Include="uLogDispatcher.pas"/>
         <DCCReference Include="uLogTypes.pas"/>
+        <DCCReference Include="uScreenshotHelper.pas"/>
+        <DCCReference Include="uStackTraceHelper.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
@@ -185,6 +190,12 @@
                         <RemoteDir>.\</RemoteDir>
                         <Operation>0</Operation>
                         <RemoteName>sk4d.dll</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="ObservabilidadeDemo.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>ObservabilidadeDemo.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
