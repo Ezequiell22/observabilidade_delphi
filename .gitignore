@@ -1,0 +1,22 @@
+# Delphi builds
+*.dcu
+*.dcp
+*.dres
+*.exe
+*.dll
+*.bpl
+*.dcpil
+*.map
+*.drc
+*.dproj.local
+*.identcache
+*.local
+
+# Pastas de histórico/cache
+__history/
+__recovery/
+*.svn/
+*.dsk
+
+# Logs locais gerados pelo logger
+logs_/
