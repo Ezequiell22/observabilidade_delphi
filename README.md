@@ -4,15 +4,15 @@ Solução de logging remoto, desacoplada e assíncrona para aplicações Delphi 
 
 - Captura automática de exceções via `Application.OnException`
 - Stack trace completo com JCL (Jedi Code Library)
-- Screenshot do desktop no momento do erro (JPEG → Base64)
-- Envio assíncrono via fila + worker thread (UDP com zlib ou TCP)
+- Screenshot do desktop no momento do erro (JPEG → Base64) salva apenas em disco (não vai para o GELF)
+- Envio assíncrono via fila + worker thread (UDP por padrão; TCP opcional)
 - Inicialização simples (DPR ou DataModule)
-- Persistência local opcional em arquivos (imagem JPEG + TXT) com retenção de 7 dias
+- Persistência local em arquivos (imagem JPEG + TXT) com retenção de 7 dias
 
 ## Arquitetura
 
 - `uLogTypes.pas`: tipos base (níveis, item de log, etc.)
-- `uGraylogClient.pas`: cliente GELF (UDP/TCP), compressão zlib para UDP e terminador nulo para TCP
+- `uGraylogClient.pas`: cliente GELF (UDP/TCP)
 - `uLogDispatcher.pas`: fila assíncrona (`TQueue<TLogItem>`) e worker que envia JSON GELF
 - `uStackTraceHelper.pas`: integração JCL para capturar stack trace
 - `uScreenshotHelper.pas`: captura de tela usando `BitBlt`, JPEG e Base64
@@ -28,7 +28,7 @@ Solução de logging remoto, desacoplada e assíncrona para aplicações Delphi 
   - Project Options → Linker → Map file = **Detailed**
   - Manter o `.map` próximo do `.exe` ou gerar `.jdbg` com utilitários da JCL
 
-## Inicialização Rápida
+## Inicialização Rápida (ERP com vários clientes)
 
 No DPR do seu ERP (ou em um DataModule de inicialização):
 
@@ -38,7 +38,14 @@ uses
 
 begin
   Application.Initialize;
-  TExceptionLogger.Initialize('SEU_GRAYLOG_HOST', 12201, 'ERP 1.0.0', tpUDP);
+  TExceptionLogger.Initialize(
+    'SEU_GRAYLOG_HOST', // Ex.: 192.168.0.2
+    12201,              // Porta GELF UDP
+    'ERP 1.0.0',        // Versão do ERP
+    'NOME DA EMPRESA',  // Cliente
+    'FILIAL 001',       // Filial
+    tpUDP
+  );
   Application.Run;
   TExceptionLogger.FinalizeLogger;
 end.
@@ -58,12 +65,14 @@ Obrigatórios:
 
 Adicionais (_custom fields_):
 
-- `_exception_class`, `_stacktrace`, `_screenshot_base64`, `_user`, `_machine`, `_erp_version`, `_module`
+- `_exception_class`, `_stacktrace`, `_user`, `_machine`, `_erp_version`, `_module`
+- `_empresa` (nome da empresa/cliente)
+- `_filial` (código ou nome da filial)
 
 ## UDP vs TCP
 
-- **UDP (padrão)**: menor latência; payload comprimido com zlib. Ideal para eventos curtos. Para evitar truncamentos, a screenshot é limitada e truncada.
-- **TCP**: envia JSON seguido de byte nulo `#0` (frame GELF). Recomendado para payloads maiores.
+- **UDP (padrão)**: menor latência. Ideal para eventos curtos. Screenshot não é enviada para o Graylog (apenas salva em disco).
+- **TCP**: envia JSON seguido de byte nulo `#0` (frame GELF). Opcional, se desejar.
 
 Trocar o protocolo na inicialização:
 

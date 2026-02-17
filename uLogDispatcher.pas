@@ -163,16 +163,12 @@ var
   ts: Double;
   key, value: string;
   FS: TFormatSettings;
-  Scr: string;
 begin
   sb := TStringBuilder.Create(1024);
   try
     ts := UnixTimestampUTC(Item.TimestampUTC);
     FS := TFormatSettings.Create;
     FS.DecimalSeparator := '.';
-    Scr := Item.ScreenshotBase64;
-    if Length(Scr) > 200000 then
-      Scr := '';
     sb.Append('{');
     sb.Append('"version":"1.1",');
     sb.Append('"host":"').Append(JsonEscape(Item.MachineName)).Append('",');
@@ -184,8 +180,6 @@ begin
       sb.Append(',"_exception_class":"').Append(JsonEscape(Item.ExceptionClass)).Append('"');
     if Item.StackTrace <> '' then
       sb.Append(',"_stacktrace":"').Append(JsonEscape(Item.StackTrace)).Append('"');
-    if Scr <> '' then
-      sb.Append(',"_screenshot_base64":"').Append(JsonEscape(Scr)).Append('"');
     if Item.UserName <> '' then
       sb.Append(',"_user":"').Append(JsonEscape(Item.UserName)).Append('"');
     if Item.MachineName <> '' then
@@ -194,6 +188,10 @@ begin
       sb.Append(',"_erp_version":"').Append(JsonEscape(Item.ERPVersion)).Append('"');
     if Item.ModuleName <> '' then
       sb.Append(',"_module":"').Append(JsonEscape(Item.ModuleName)).Append('"');
+    if Item.CompanyName <> '' then
+      sb.Append(',"_empresa":"').Append(JsonEscape(Item.CompanyName)).Append('"');
+    if Item.BranchId <> '' then
+      sb.Append(',"_filial":"').Append(JsonEscape(Item.BranchId)).Append('"');
     if Assigned(Item.Additional) and (Item.Additional.Count > 0) then
     begin
       for key in Item.Additional.Keys do

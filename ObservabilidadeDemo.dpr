@@ -1,4 +1,4 @@
-﻿program ObservabilidadeDemo;
+program ObservabilidadeDemo;
 
 uses
   Vcl.Forms,
@@ -14,7 +14,9 @@ begin
       '192.168.0.2',
       12201,
       '1.0.0',
-      tpTCP
+      'Empresa Demonstração',
+      'Filial 01',
+      tpUDP
     );
 
   TExceptionLogger.LogMessage(llInfo, 'Aplicação iniciada', 'Demonstração de logging para Graylog');
@@ -30,4 +32,3 @@ begin
   Application.Run;
   TExceptionLogger.FinalizeLogger;
 end.
-

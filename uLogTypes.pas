@@ -30,6 +30,8 @@ type
     MachineName: string;
     ERPVersion: string;
     ModuleName: string;
+    CompanyName: string;
+    BranchId: string;
     Additional: TDictionary<string, string>;
     constructor Create;
     destructor Destroy; override;

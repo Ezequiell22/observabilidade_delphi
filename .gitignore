@@ -12,6 +12,8 @@
 *.identcache
 *.local
 
+logs/
+
 # Pastas de histórico/cache
 __history/
 __recovery/

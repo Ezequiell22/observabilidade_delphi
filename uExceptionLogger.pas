@@ -12,13 +12,17 @@ type
     class var FClient: TObject;
     class var FInitialized: Boolean;
     class var FERPVersion: string;
+    class var FCompanyName: string;
+    class var FBranchId: string;
     class var FPrevOnException: TExceptionEvent;
     class function GetMachineName: string; static;
     class function GetUserName: string; static;
     class function GetModuleName: string; static;
   public
     class procedure Initialize(const GraylogHost: string; GraylogPort: Integer; const ERPVersion: string;
-      Protocol: TTransportProtocol = tpUDP);
+      Protocol: TTransportProtocol = tpUDP); overload;
+    class procedure Initialize(const GraylogHost: string; GraylogPort: Integer; const ERPVersion, CompanyName,
+      BranchId: string; Protocol: TTransportProtocol = tpUDP); overload;
     class procedure FinalizeLogger;
     class procedure HandleException(Sender: TObject; E: Exception);
     class procedure LogMessage(const Level: TLogLevel; const ShortMsg, FullMsg: string);
@@ -65,6 +69,12 @@ end;
 
 class procedure TExceptionLogger.Initialize(const GraylogHost: string; GraylogPort: Integer;
   const ERPVersion: string; Protocol: TTransportProtocol);
+begin
+  Initialize(GraylogHost, GraylogPort, ERPVersion, '', '', Protocol);
+end;
+
+class procedure TExceptionLogger.Initialize(const GraylogHost: string; GraylogPort: Integer;
+  const ERPVersion, CompanyName, BranchId: string; Protocol: TTransportProtocol);
 var
   Client: TGraylogClient;
   Dispatcher: TLogDispatcher;
@@ -72,6 +82,8 @@ begin
   if FInitialized then Exit;
   try
     FERPVersion := ERPVersion;
+    FCompanyName := CompanyName;
+    FBranchId := BranchId;
     TStackTraceHelper.Initialize;
     Client := TGraylogClient.Create(GraylogHost, GraylogPort, Protocol);
     Client.ConfigureTimeouts(400, 400);
@@ -129,6 +141,8 @@ begin
     Item.MachineName := GetMachineName;
     Item.ERPVersion := FERPVersion;
     Item.ModuleName := GetModuleName;
+    Item.CompanyName := FCompanyName;
+    Item.BranchId := FBranchId;
     Item.ScreenshotBase64 := TScreenshotHelper.CaptureScreenToBase64JPEG(60, 512*1024);
     Disp.Enqueue(Item);
     try
@@ -166,6 +180,8 @@ begin
     Item.MachineName := GetMachineName;
     Item.ERPVersion := FERPVersion;
     Item.ModuleName := GetModuleName;
+    Item.CompanyName := FCompanyName;
+    Item.BranchId := FBranchId;
     if Level in [llError, llFatal] then
       Item.ScreenshotBase64 := TScreenshotHelper.CaptureScreenToBase64JPEG(60, 512*1024);
     Disp.Enqueue(Item);

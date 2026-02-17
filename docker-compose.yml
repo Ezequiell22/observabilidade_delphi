@@ -35,15 +35,14 @@ services:
       - GRAYLOG_PASSWORD_SECRET=some-long-password-secret-change-me
       # senha do usuário admin: "admin"
       - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-      - GRAYLOG_HTTP_EXTERNAL_URI=http://127.0.0.1:9000/
+      - GRAYLOG_HTTP_EXTERNAL_URI=http://192.168.0.2:9000/
       - GRAYLOG_MONGODB_URI=mongodb://mongodb:27017/graylog
       - GRAYLOG_ELASTICSEARCH_HOSTS=http://opensearch:9200
     ports:
-      - "9000:9000"        # Web UI
-      - "12201:12201/udp"  # GELF UDP
-      - "12201:12201/tcp"  # GELF TCP
+      - "192.168.0.2:9000:9000"          # Web UI
+      - "192.168.0.2:12201:12201/udp"    # GELF UDP
+      - "192.168.0.2:12201:12201/tcp"    # GELF TCP
 
 volumes:
   mongo_data:
   opensearch_data:
-
