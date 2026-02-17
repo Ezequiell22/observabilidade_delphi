@@ -132,7 +132,7 @@ begin
     Item.ScreenshotBase64 := TScreenshotHelper.CaptureScreenToBase64JPEG(60, 512*1024);
     Disp.Enqueue(Item);
     try
-      TLocalLogHelper.SaveExceptionAsPDF(Item);
+      TLocalLogHelper.SaveExceptionFiles(Item);
       TLocalLogHelper.PurgeOldLogs(7);
     except
       // ignore
@@ -172,7 +172,7 @@ begin
     if Level in [llError, llFatal] then
     begin
       try
-        TLocalLogHelper.SaveExceptionAsPDF(Item);
+        TLocalLogHelper.SaveExceptionFiles(Item);
         TLocalLogHelper.PurgeOldLogs(7);
       except
         // ignore

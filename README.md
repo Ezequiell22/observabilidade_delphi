@@ -7,7 +7,7 @@ Solução de logging remoto, desacoplada e assíncrona para aplicações Delphi 
 - Screenshot do desktop no momento do erro (JPEG → Base64)
 - Envio assíncrono via fila + worker thread (UDP com zlib ou TCP)
 - Inicialização simples (DPR ou DataModule)
-- Persistência local opcional em PDF (imagem + informações) com retenção de 7 dias
+- Persistência local opcional em arquivos (imagem JPEG + TXT) com retenção de 7 dias
 
 ## Arquitetura
 
@@ -17,7 +17,7 @@ Solução de logging remoto, desacoplada e assíncrona para aplicações Delphi 
 - `uStackTraceHelper.pas`: integração JCL para capturar stack trace
 - `uScreenshotHelper.pas`: captura de tela usando `BitBlt`, JPEG e Base64
 - `uExceptionLogger.pas`: ponto de integração (Initialize/Finalize/HandleException/LogMessage)
-- `uLocalLog.pas`: salvamento local dos erros em PDF e limpeza de arquivos antigos
+- `uLocalLog.pas`: salvamento local dos erros (imagem JPEG + TXT) e limpeza de arquivos antigos
 
 ## Pré‑requisitos
 
@@ -71,19 +71,18 @@ Trocar o protocolo na inicialização:
 TExceptionLogger.Initialize('host', 12201, 'ERP 1.0.0', tpTCP);
 ```
 
-## Logs Locais (PDF)
+## Logs Locais (Imagem + TXT)
 
-- Quando ocorrer um erro (`llError`/`llFatal`), além do envio ao Graylog, um PDF é salvo em `./logs_` com:
-  - Screenshot (quando disponível) em JPEG, incorporada ao PDF
-  - Informações principais: data/hora, host, usuário, ERP, módulo, classe e mensagem da exceção
-  - Stack trace (com limite para evitar arquivos muito grandes)
+- Quando ocorrer um erro (`llError`/`llFatal`), além do envio ao Graylog, dois arquivos são salvos em `./logs_`:
+  - Imagem: `YYYYMMDD_HHNNSS_<Classe>.jpg` (screenshot do desktop, quando disponível)
+  - Texto: `YYYYMMDD_HHNNSS_<Classe>.txt` com data/hora, host, usuário, ERP, módulo, classe, mensagem e stack trace
 - O sistema mantém apenas arquivos com até 7 dias dentro de `logs_` (limpeza automática).
 
 Exemplo de ativação (já integrado ao `TExceptionLogger`):
 
 ```pascal
 // Ao capturar exceções, o ExceptionLogger chama:
-// TLocalLogHelper.SaveExceptionAsPDF(Item);
+// TLocalLogHelper.SaveExceptionFiles(Item);
 // TLocalLogHelper.PurgeOldLogs(7);
 ```
 
