@@ -27,7 +27,7 @@ type
 implementation
 
 uses
-  Vcl.Forms, Winapi.Windows, uStackTraceHelper, uScreenshotHelper, uGraylogClient, uLogDispatcher,
+  Winapi.Windows, uStackTraceHelper, uScreenshotHelper, uGraylogClient, uLogDispatcher,
   System.Classes, uLocalLog;
 
 class function TExceptionLogger.GetMachineName: string;

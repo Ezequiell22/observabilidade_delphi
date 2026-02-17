@@ -17,45 +17,11 @@ type
 implementation
 
 uses
-  Winapi.Windows, System.DateUtils, EncdDecd;
+  Winapi.Windows,
+  System.DateUtils,
+  EncdDecd;
 
-function ReplaceInvalidPDFText(const S: string): AnsiString;
-var
-  i: Integer;
-  ch: Char;
-begin
-  SetLength(Result, Length(S));
-  for i := 1 to Length(S) do
-  begin
-    ch := S[i];
-    if Ord(ch) < 32 then
-      Result[i] := AnsiChar(' ')
-    else if Ord(ch) > 126 then
-      Result[i] := AnsiChar('?')
-    else
-      Result[i] := AnsiChar(ch);
-  end;
-end;
-
-function EscapePDFParen(const S: AnsiString): AnsiString;
-var
-  i: Integer;
-begin
-  Result := '';
-  for i := 1 to Length(S) do
-  begin
-    case S[i] of
-      '(', ')', '\': Result := Result + '\' + S[i];
-    else
-      Result := Result + S[i];
-    end;
-  end;
-end;
-
-function ToId(const I: Integer): string;
-begin
-  Result := IntToStr(I) + ' 0 obj';
-end;
+{ -------------------------------------------------------------------- }
 
 class function TLocalLogHelper.LogsDir: string;
 var
@@ -64,71 +30,85 @@ var
 begin
   GetModuleFileName(0, Buf, MAX_PATH);
   Dir := ExtractFilePath(Buf);
-  Result := IncludeTrailingPathDelimiter(Dir) + 'logs_';
+  Result := IncludeTrailingPathDelimiter(Dir) + 'logs';
 end;
 
+{ -------------------------------------------------------------------- }
+
 class procedure TLocalLogHelper.EnsureLogsDir;
-var
-  D: string;
 begin
-  D := LogsDir;
-  if not DirectoryExists(D) then
+  if not DirectoryExists(LogsDir) then
   begin
     try
-      ForceDirectories(D);
+      ForceDirectories(LogsDir);
     except
       // ignore
     end;
   end;
 end;
 
+{ -------------------------------------------------------------------- }
+
 class procedure TLocalLogHelper.PurgeOldLogs(Days: Integer);
 var
   SR: TSearchRec;
   Path: string;
-  NowDT: TDateTime;
-  FileDT: TDateTime;
+  NowDT, FileDT: TDateTime;
+  FullName: string;
 begin
   try
     Path := IncludeTrailingPathDelimiter(LogsDir) + '*.*';
     NowDT := Now;
-    if FindFirst(Path, faAnyFile, SR) = 0 then
+
+    if System.SysUtils.FindFirst(Path, faAnyFile, SR) = 0 then
     begin
-      repeat
-        if (SR.Attr and faDirectory) = 0 then
-        begin
-          FileDT := FileDateToDateTime(SR.Time);
-          if DaysBetween(NowDT, FileDT) > Days then
+      try
+        repeat
+          if (SR.Attr and faDirectory) = 0 then
           begin
-            try
-              DeleteFile(IncludeTrailingPathDelimiter(LogsDir) + SR.Name);
-            except
-              // ignore
+            FileDT := FileDateToDateTime(SR.Time);
+            if DaysBetween(NowDT, FileDT) > Days then
+            begin
+              FullName := IncludeTrailingPathDelimiter(LogsDir) + SR.Name;
+              try
+                System.SysUtils.DeleteFile(FullName);
+              except
+                // ignore
+              end;
             end;
           end;
-        end;
-      until FindNext(SR) <> 0;
-      FindClose(SR);
+        until System.SysUtils.FindNext(SR) <> 0;
+      finally
+        System.SysUtils.FindClose(SR);
+      end;
     end;
   except
     // ignore
   end;
 end;
 
+{ -------------------------------------------------------------------- }
+
 class procedure TLocalLogHelper.SaveExceptionFiles(const Item: TLogItem);
 var
   BaseName, TxtName, ImgName: string;
   SL: TStringList;
-  B64, Decoded: string;
+  B64: string;
   ImgStream: TFileStream;
-  ImgBytes: TBytes;
+  InputStream, OutputStream: TStringStream;
 begin
   try
     EnsureLogsDir;
-    BaseName := FormatDateTime('yyyymmdd_hhnnss', Now) + '_' +
+
+    BaseName :=
+      FormatDateTime('yyyymmdd_hhnnss', Now) + '_' +
       StringReplace(Item.ExceptionClass, ' ', '_', [rfReplaceAll]);
+
     TxtName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.txt';
     ImgName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.jpg';
+
+    { ----------- TXT ----------- }
+
     SL := TStringList.Create;
     try
       SL.Add('Data/Hora: ' + DateTimeToStr(Item.TimestampUTC));
@@ -136,10 +116,12 @@ begin
       SL.Add('ERP: ' + Item.ERPVersion + '  Modulo: ' + Item.ModuleName);
       SL.Add('Classe: ' + Item.ExceptionClass);
       SL.Add('Mensagem: ' + Item.FullMessage);
-      SL.Add(' ');
+      SL.Add('');
       SL.Add('Stack trace:');
+
       if Item.StackTrace <> '' then
         SL.Add(Item.StackTrace);
+
       try
         SL.SaveToFile(TxtName);
       except
@@ -148,26 +130,42 @@ begin
     finally
       SL.Free;
     end;
+
+    { ----------- JPG (Base64) ----------- }
+
     B64 := Item.ScreenshotBase64;
+
     if B64 <> '' then
-    try
-      Decoded := DecodeBase64(B64);
-      SetLength(ImgBytes, Length(Decoded));
-      if Length(ImgBytes) > 0 then
-        Move(Decoded[1], ImgBytes[0], Length(Decoded));
-      ImgStream := TFileStream.Create(ImgName, fmCreate);
+    begin
+      InputStream := TStringStream.Create(B64);
       try
-        if Length(ImgBytes) > 0 then
-          ImgStream.WriteBuffer(ImgBytes[0], Length(ImgBytes));
+        OutputStream := TStringStream.Create('');
+        try
+          // Delphi XE2 usa DecodeStream
+          DecodeStream(InputStream, OutputStream);
+
+          if OutputStream.Size > 0 then
+          begin
+            ImgStream := TFileStream.Create(ImgName, fmCreate);
+            try
+              OutputStream.Position := 0;
+              ImgStream.CopyFrom(OutputStream, OutputStream.Size);
+            finally
+              ImgStream.Free;
+            end;
+          end;
+        finally
+          OutputStream.Free;
+        end;
       finally
-        ImgStream.Free;
+        InputStream.Free;
       end;
-    except
-      // ignore
     end;
+
   except
-    // ignore
+    // nunca levanta
   end;
 end;
 
 end.
+

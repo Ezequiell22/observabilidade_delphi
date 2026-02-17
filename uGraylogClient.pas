@@ -1,4 +1,4 @@
-unit uGraylogClient;
+﻿unit uGraylogClient;
 {
   Cliente Graylog compatível com GELF 1.1.
   - Suporta UDP (com compressão zlib) e TCP (terminado por #0).
@@ -35,7 +35,7 @@ type
 implementation
 
 uses
-  System.ZLib, IdGlobal, Winapi.Windows;
+  System.ZLib, Winapi.Windows;
 
 constructor TGraylogClient.Create(const AHost: string; APort: Integer; AProtocol: TTransportProtocol);
 begin
@@ -117,9 +117,9 @@ begin
     Data := ToBytes(AJson, IndyTextEncoding_UTF8);
     if FProtocol = tpUDP then
     begin
-      Compressed := CompressZlib(Data);
+
       if Assigned(FUDP) then
-        FUDP.SendBuffer(Compressed);
+        FUDP.SendBuffer(data);
       Result := True;
     end
     else
