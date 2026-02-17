@@ -3,7 +3,13 @@
 uses
   Vcl.Forms,
   uExceptionLogger in 'uExceptionLogger.pas',
-  uLogTypes in 'uLogTypes.pas', System.SysUtils;
+  System.SysUtils,
+  uGraylogClient in 'uGraylogClient.pas',
+  uLocalLog in 'uLocalLog.pas',
+  uLogDispatcher in 'uLogDispatcher.pas',
+  uLogTypes in 'uLogTypes.pas',
+  uScreenshotHelper in 'uScreenshotHelper.pas',
+  uStackTraceHelper in 'uStackTraceHelper.pas';
 
 {$R *.res}
 
@@ -12,9 +18,11 @@ begin
 
   TExceptionLogger.Initialize(
       '192.168.0.2',
-      12201,
+        12201,
       '1.0.0',
-      tpTCP
+      'Empresa do jose',
+      'Filial 1',
+      tpUDP
     );
 
   TExceptionLogger.LogMessage(llInfo, 'Aplicação iniciada', 'Demonstração de logging para Graylog');

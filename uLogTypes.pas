@@ -1,4 +1,4 @@
-unit uLogTypes;
+﻿unit uLogTypes;
 {
   Tipos base para o sistema de logging.
   - TLogLevel: níveis compatíveis com syslog.
@@ -30,6 +30,8 @@ type
     MachineName: string;
     ERPVersion: string;
     ModuleName: string;
+    CompanyName: string;
+    BranchId: string;
     Additional: TDictionary<string, string>;
     constructor Create;
     destructor Destroy; override;
@@ -70,3 +72,4 @@ begin
 end;
 
 end.
+
