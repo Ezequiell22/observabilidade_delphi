@@ -44,6 +44,7 @@ begin
     'ERP 1.0.0',        // Versão do ERP
     'NOME DA EMPRESA',  // Cliente
     'FILIAL 001',       // Filial
+    'USUARIO SISTEMA',  // Usuário do sistema
     tpUDP
   );
   Application.Run;
