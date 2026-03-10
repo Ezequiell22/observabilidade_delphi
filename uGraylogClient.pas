@@ -1,4 +1,4 @@
-unit uGraylogClient;
+﻿unit uGraylogClient;
 {
   Cliente Graylog compatível com GELF 1.1.
   - Suporta UDP (com compressão zlib) e TCP (terminado por #0).
@@ -114,7 +114,7 @@ var
 begin
   Result := False;
   try
-    Data := ToBytes(AJson, IndyTextEncoding_UTF8);
+    Data := ToBytes(AJson, TEncoding.UTF8);
     if FProtocol = tpUDP then
     begin
 

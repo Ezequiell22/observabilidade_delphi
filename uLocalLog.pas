@@ -3,15 +3,14 @@ unit uLocalLog;
 interface
 
 uses
-  System.SysUtils, System.Classes, uLogTypes;
+  System.SysUtils, System.Classes, uLogTypes, System.StrUtils;
 
 type
   TLocalLogHelper = class
   public
     class function LogsDir: string;
-    class procedure EnsureLogsDir;
     class procedure PurgeOldLogs(Days: Integer = 7);
-    class procedure SaveExceptionFiles(const Item: TLogItem);
+    class procedure SaveExceptionFiles(const pItem: TLogItem);
   end;
 
 implementation
@@ -33,19 +32,6 @@ begin
   Result := IncludeTrailingPathDelimiter(Dir) + 'logs';
 end;
 
-{ -------------------------------------------------------------------- }
-
-class procedure TLocalLogHelper.EnsureLogsDir;
-begin
-  if not DirectoryExists(LogsDir) then
-  begin
-    try
-      ForceDirectories(LogsDir);
-    except
-      // ignore
-    end;
-  end;
-end;
 
 { -------------------------------------------------------------------- }
 
@@ -89,81 +75,104 @@ end;
 
 { -------------------------------------------------------------------- }
 
-class procedure TLocalLogHelper.SaveExceptionFiles(const Item: TLogItem);
+class procedure TLocalLogHelper.SaveExceptionFiles(const pItem: TLogItem);
 var
   BaseName, TxtName, ImgName: string;
   SL: TStringList;
   B64: string;
   ImgStream: TFileStream;
   InputStream, OutputStream: TStringStream;
-begin
-  try
-    EnsureLogsDir;
+  Item: TLogItem;
 
-    BaseName :=
-      FormatDateTime('yyyymmdd_hhnnss', Now) + '_' +
-      StringReplace(Item.ExceptionClass, ' ', '_', [rfReplaceAll]);
-
-    TxtName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.txt';
-    ImgName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.jpg';
-
-    { ----------- TXT ----------- }
-
-    SL := TStringList.Create;
-    try
-      SL.Add('Data/Hora: ' + DateTimeToStr(Item.TimestampUTC));
-      SL.Add('Host: ' + Item.MachineName + '  Usuario: ' + Item.UserName);
-      SL.Add('ERP: ' + Item.ERPVersion + '  Modulo: ' + Item.ModuleName);
-      SL.Add('Classe: ' + Item.ExceptionClass);
-      SL.Add('Mensagem: ' + Item.FullMessage);
-      SL.Add('');
-      SL.Add('Stack trace:');
-
-      if Item.StackTrace <> '' then
-        SL.Add(Item.StackTrace);
-
+  procedure EnsureLogsDir;
+  begin
+    if not DirectoryExists(LogsDir) then
+    begin
       try
-        SL.SaveToFile(TxtName);
+        ForceDirectories(LogsDir);
       except
         // ignore
       end;
-    finally
-      SL.Free;
     end;
+  end;
 
-    { ----------- JPG (Base64) ----------- }
+begin
+  try
+    try
+      Item := pItem.Clone;
+      EnsureLogsDir;
 
-    B64 := Item.ScreenshotBase64;
+      BaseName :=
+        FormatDateTime('yyyymmdd_hhnnss', Now) + '_' +
+        StringReplace(IfThen(Item.ExceptionClass <> EmptyStr, Item.ExceptionClass, 'Unknown') , ' ', '_', [rfReplaceAll]);
 
-    if B64 <> '' then
-    begin
-      InputStream := TStringStream.Create(B64);
+      TxtName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.txt';
+      ImgName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.jpg';
+
+      { ----------- TXT ----------- }
+
+      SL := TStringList.Create;
       try
-        OutputStream := TStringStream.Create('');
-        try
-          // Delphi XE2 usa DecodeStream
-          DecodeStream(InputStream, OutputStream);
+        SL.Add('==============================================================================');
+        SL.Add('Data/Hora: ' + DateTimeToStr(Item.TimestampUTC));
+        SL.Add('Host: ' + Item.MachineName );
+        SL.Add('Usuario SO: ' + Item.UserName);
+        SL.Add('Usuário: ' + Item.UserLogged);
+        SL.Add('ERP: ' + Item.ERPVersion);
+        SL.AdD('Modulo: ' + Item.ModuleName);
+        SL.Add('Classe: ' + Item.ExceptionClass);
+        SL.Add('Mensagem: ' + Item.FullMessage);
+        SL.Add('==============================================================================');
+        SL.Add('Stack trace:');
 
-          if OutputStream.Size > 0 then
-          begin
-            ImgStream := TFileStream.Create(ImgName, fmCreate);
-            try
-              OutputStream.Position := 0;
-              ImgStream.CopyFrom(OutputStream, OutputStream.Size);
-            finally
-              ImgStream.Free;
-            end;
-          end;
-        finally
-          OutputStream.Free;
+        if Item.StackTrace <> '' then
+          SL.Add(Item.StackTrace);
+
+        try
+          SL.SaveToFile(TxtName);
+        except
+          // ignore
         end;
       finally
-        InputStream.Free;
+        SL.Free;
       end;
-    end;
 
-  except
-    // nunca levanta
+      { ----------- JPG (Base64) ----------- }
+
+      B64 := Item.ScreenshotBase64;
+
+      if B64 <> '' then
+      begin
+        InputStream := TStringStream.Create(B64);
+        try
+          OutputStream := TStringStream.Create('');
+          try
+            // Delphi XE2 usa DecodeStream
+            DecodeStream(InputStream, OutputStream);
+
+            if OutputStream.Size > 0 then
+            begin
+              ImgStream := TFileStream.Create(ImgName, fmCreate);
+              try
+                OutputStream.Position := 0;
+                ImgStream.CopyFrom(OutputStream, OutputStream.Size);
+              finally
+                ImgStream.Free;
+              end;
+            end;
+          finally
+            OutputStream.Free;
+          end;
+        finally
+          InputStream.Free;
+        end;
+      end;
+
+    except
+      // nunca levanta
+    end;
+  finally
+    item.Free;
   end;
 end;
 

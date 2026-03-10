@@ -25,7 +25,7 @@ uses
   Vcl.Graphics,
   Vcl.Imaging.jpeg,
   System.Classes,
-  System.NetEncoding;
+  EncdDecd;
 
 class function TScreenshotHelper.CaptureScreenToBase64JPEG(
   Quality: Integer = 60;
@@ -37,7 +37,7 @@ var
   ms: TMemoryStream;
   dc: HDC;
   w, h, x, y: Integer;
-  Bytes: TBytes;
+  OutStream: TMemoryStream;
 begin
   Result := '';
 
@@ -70,11 +70,15 @@ begin
     if ms.Size > MaxBytes then
       Exit;
 
-    SetLength(Bytes, ms.Size);
     ms.Position := 0;
-    ms.ReadBuffer(Bytes[0], ms.Size);
+    OutStream := TMemoryStream.Create;
+    try
+      EncodeStream(ms, OutStream);
+      SetString(Result, PAnsiChar(OutStream.Memory), OutStream.Size);
+    finally
+      OutStream.Free;
+    end;
 
-    Result := TNetEncoding.Base64.EncodeBytesToString(Bytes);
   finally
     ms.Free;
     jpg.Free;

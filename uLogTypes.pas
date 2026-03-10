@@ -1,4 +1,4 @@
-unit uLogTypes;
+﻿unit uLogTypes;
 {
   Tipos base para o sistema de logging.
   - TLogLevel: níveis compatíveis com syslog.
@@ -27,6 +27,7 @@ type
     StackTrace: string;
     ScreenshotBase64: string;
     UserName: string;
+    UserLogged: string;
     MachineName: string;
     ERPVersion: string;
     ModuleName: string;
@@ -35,6 +36,7 @@ type
     Additional: TDictionary<string, string>;
     constructor Create;
     destructor Destroy; override;
+    function Clone: TLogItem;
   end;
 
 function LogLevelToSyslog(const Level: TLogLevel): Integer;
@@ -43,6 +45,31 @@ implementation
 
 uses
   Winapi.Windows;
+
+function TLogItem.Clone: TLogItem;
+var
+  Pair: TPair<string,string>;
+begin
+  Result := TLogItem.Create;
+
+  Result.TimestampUTC := TimestampUTC;
+  Result.Level := Level;
+  Result.ShortMessage := ShortMessage;
+  Result.FullMessage := FullMessage;
+  Result.ExceptionClass := ExceptionClass;
+  Result.StackTrace := StackTrace;
+  Result.ScreenshotBase64 := ScreenshotBase64;
+  Result.UserName := UserName;
+  Result.UserLogged := UserLogged;
+  Result.MachineName := MachineName;
+  Result.ERPVersion := ERPVersion;
+  Result.ModuleName := ModuleName;
+  Result.CompanyName := CompanyName;
+  Result.BranchId := BranchId;
+
+  for Pair in Additional do
+    Result.Additional.Add(Pair.Key, Pair.Value);
+end;
 
 constructor TLogItem.Create;
 begin
