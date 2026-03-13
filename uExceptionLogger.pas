@@ -135,6 +135,7 @@ begin
     Item.ExceptionClass := E.ClassName;
     Item.StackTrace := TStackTraceHelper.CaptureExceptionStack(E);
     Item.UserName := GetUserName;
+    Item.UserLogged := FUserLogged;
     Item.MachineName := GetMachineName;
     Item.ERPVersion := FERPVersion;
     Item.ModuleName := GetModuleName;
@@ -174,6 +175,7 @@ begin
     Item.ShortMessage := ShortMsg;
     Item.FullMessage := FullMsg;
     Item.UserName := GetUserName;
+    Item.UserLogged := FUserLogged;
     Item.MachineName := GetMachineName;
     Item.ERPVersion := FERPVersion;
     Item.ModuleName := GetModuleName;

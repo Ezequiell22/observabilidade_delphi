@@ -1,0 +1,1 @@
+Sempre utilizar L no inicio de uma var decladara na função 

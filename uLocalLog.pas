@@ -82,7 +82,7 @@ var
   B64: string;
   ImgStream: TFileStream;
   InputStream, OutputStream: TStringStream;
-  Item: TLogItem;
+  LItem: TLogItem;
 
   procedure EnsureLogsDir;
   begin
@@ -99,12 +99,13 @@ var
 begin
   try
     try
-      Item := pItem.Clone;
+      LItem := nil;
+      LItem := pItem.Clone;
       EnsureLogsDir;
 
       BaseName :=
         FormatDateTime('yyyymmdd_hhnnss', Now) + '_' +
-        StringReplace(IfThen(Item.ExceptionClass <> EmptyStr, Item.ExceptionClass, 'Unknown') , ' ', '_', [rfReplaceAll]);
+        StringReplace(IfThen(LItem.ExceptionClass <> EmptyStr, LItem.ExceptionClass, 'Unknown') , ' ', '_', [rfReplaceAll]);
 
       TxtName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.txt';
       ImgName := IncludeTrailingPathDelimiter(LogsDir) + BaseName + '.jpg';
@@ -114,19 +115,19 @@ begin
       SL := TStringList.Create;
       try
         SL.Add('==============================================================================');
-        SL.Add('Data/Hora: ' + DateTimeToStr(Item.TimestampUTC));
-        SL.Add('Host: ' + Item.MachineName );
-        SL.Add('Usuario SO: ' + Item.UserName);
-        SL.Add('Usuário: ' + Item.UserLogged);
-        SL.Add('ERP: ' + Item.ERPVersion);
-        SL.AdD('Modulo: ' + Item.ModuleName);
-        SL.Add('Classe: ' + Item.ExceptionClass);
-        SL.Add('Mensagem: ' + Item.FullMessage);
+        SL.Add('Data/Hora: ' + DateTimeToStr(LItem.TimestampUTC));
+        SL.Add('Host: ' + LItem.MachineName );
+        SL.Add('Usuario SO: ' + LItem.UserName);
+        SL.Add('Usuï¿½rio: ' + LItem.UserLogged);
+        SL.Add('ERP: ' + LItem.ERPVersion);
+        SL.AdD('Modulo: ' + LItem.ModuleName);
+        SL.Add('Classe: ' + LItem.ExceptionClass);
+        SL.Add('Mensagem: ' + LItem.FullMessage);
         SL.Add('==============================================================================');
         SL.Add('Stack trace:');
 
-        if Item.StackTrace <> '' then
-          SL.Add(Item.StackTrace);
+        if LItem.StackTrace <> '' then
+          SL.Add(LItem.StackTrace);
 
         try
           SL.SaveToFile(TxtName);
@@ -139,7 +140,7 @@ begin
 
       { ----------- JPG (Base64) ----------- }
 
-      B64 := Item.ScreenshotBase64;
+      B64 := LItem.ScreenshotBase64;
 
       if B64 <> '' then
       begin
@@ -172,9 +173,9 @@ begin
       // nunca levanta
     end;
   finally
-    item.Free;
+    if Assigned(LItem) then
+      LItem.Free;
   end;
 end;
 
 end.
-

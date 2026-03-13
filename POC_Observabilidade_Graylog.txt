@@ -1,0 +1,102 @@
+POC – Observabilidade do ERP (Delphi XE2) com Graylog (GELF)
+============================================================
+
+1) Resumo executivo
+-------------------
+Esta POC implementa observabilidade para o ERP (Delphi XE2/VCL) com envio de eventos para Graylog usando GELF 1.1.
+O objetivo é centralizar erros e eventos importantes em um único painel, sem travar o ERP e permitindo identificar
+rapidamente em qual cliente/filial o problema está ocorrendo.
+
+2) Problema que estamos resolvendo
+----------------------------------
+- Hoje o diagnóstico de falhas depende de evidências locais (prints, relatos, arquivos de log dispersos).
+- Tempo de resposta alto: identificar causa/impacto demanda suporte remoto e retrabalho.
+- Falta visibilidade por cliente/filial em um ERP com múltiplas implantações.
+- Risco operacional: exceções podem ser silenciosas ou não rastreáveis.
+
+3) O que a POC entrega (resultado)
+----------------------------------
+3.1. Envio centralizado (Graylog)
+- Envio assíncrono (fila + worker thread) para não bloquear a UI / thread principal do ERP.
+- Formato GELF 1.1 (padrão Graylog).
+- Transporte: UDP (mais simples e leve para produção).
+- Timestamp do evento: definido pelo servidor Graylog (evita “sumir” na busca por relógio do cliente incorreto).
+- Metadados críticos para auditoria/diagnóstico:
+  - _empresa: nome do cliente
+  - _filial: código/nome da filial
+  - _erp_version: versão do ERP
+  - _module: executável/módulo
+  - _user / _machine: usuário e máquina
+  - _exception_class e _stacktrace: detalhes técnicos do erro
+  - _client_time: data/hora do cliente (apenas como referência)
+
+3.2. Persistência local (fallback)
+- Em caso de indisponibilidade de rede/Graylog, o erro ainda fica registrado localmente.
+- Pasta: logs\
+- Arquivos gerados:
+  - YYYYMMDD_HHNNSS_<Classe>.txt (mensagem + stack trace + contexto)
+  - YYYYMMDD_HHNNSS_<Classe>.jpg (screenshot completo, quando disponível)
+- Retenção automática: remove arquivos com mais de 7 dias.
+
+3.3. Segurança e impacto no ERP
+- Sem dependência de banco local.
+- Sem travar o ERP: IO de rede é feito fora da thread principal.
+- Falhas de envio são tratadas (não propagam exceções para o ERP).
+
+4) Arquitetura (alto nível)
+---------------------------
+Componentes principais:
+- ExceptionLogger: integra com Application.OnException; centraliza inicialização e captura de exceções.
+- Dispatcher: fila em memória e thread de envio; aplica retry simples e evita crescimento infinito (limite de fila).
+- GraylogClient: transporte UDP/TCP, responsável somente por enviar o payload.
+- StackTraceHelper (JCL): captura stack trace detalhado (com map/jdbg configurado).
+- LocalLogHelper: grava TXT/JPG localmente e faz limpeza por retenção.
+
+Fluxo:
+Erro no ERP -> Application.OnException -> monta TLogItem (empresa/filial/etc) -> Enqueue -> Worker envia GELF UDP
+Em paralelo, o erro é persistido em logs\ (TXT/JPG).
+
+5) Demonstração (como rodar em ambiente de POC)
+-----------------------------------------------
+Pré-requisitos:
+- Graylog rodando em outra máquina (ex.: 192.168.0.2), porta 9000 (UI) e 12201/udp (GELF).
+- Delphi XE2 com JCL instalada (para stack trace completo).
+
+Passo a passo:
+1) Subir o Graylog (na máquina do Graylog):
+   - docker compose up -d
+2) Configurar input:
+   - Graylog UI -> System -> Inputs -> Launch input "GELF UDP" na porta 12201 (bind 0.0.0.0).
+3) Rodar o demo do Delphi:
+   - Ajustar host Graylog (ex.: 192.168.0.2) e informar empresa/filial.
+   - Executar ObservabilidadeDemo.exe (gera uma exceção de teste).
+4) Validar:
+   - Graylog -> Search -> filtrar por _empresa e _filial.
+   - Validar também criação dos arquivos em logs\ (TXT/JPG).
+
+6) Benefícios esperados (para diretoria)
+----------------------------------------
+- Redução do tempo médio de diagnóstico (MTTR): evidência centralizada + stack trace + contexto de cliente/filial.
+- Redução de chamadas de suporte e retrabalho: erros ficam rastreáveis com dados suficientes para correção.
+- Priorização por impacto: dashboards por cliente/filial, por versão, por módulo, por severidade.
+- Melhoria contínua: acompanhamento de tendência de falhas por release.
+- Baixo risco de adoção: não altera fluxos do ERP e não bloqueia o usuário final.
+
+7) Próximos passos sugeridos (pós-POC)
+--------------------------------------
+- Definir padrão para preenchimento de empresa/filial no ERP (fonte única).
+- Criar dashboards e alertas no Graylog:
+  - Erros por cliente/filial
+  - Erros por versão do ERP
+  - Top exceções e módulos
+- (Opcional) Estratégia de envio confiável:
+  - Manter UDP para eventos curtos e críticos.
+  - Para payloads maiores/garantia, avaliar TCP/HTTP ou GELF chunking (não necessário na POC).
+
+8) Observações técnicas importantes
+-----------------------------------
+- UDP é indicado para não travar o ERP, mas pode perder mensagens em redes instáveis.
+  Por isso a persistência local (logs\) é parte da estratégia.
+- Stack trace detalhado depende de map/jdbg corretamente configurado no build do ERP.
+
+Fim.

@@ -3,7 +3,7 @@
 Solução de logging remoto, desacoplada e assíncrona para aplicações Delphi XE2 (VCL), enviando eventos ao Graylog no formato GELF 1.1. Inclui:
 
 - Captura automática de exceções via `Application.OnException`
-- Stack trace completo com JCL (Jedi Code Library)
+- Stack trace sem dependências externas (endereços + módulo/offset, quando possível com símbolos)
 - Screenshot do desktop no momento do erro (JPEG → Base64) salva apenas em disco (não vai para o GELF)
 - Envio assíncrono via fila + worker thread (UDP por padrão; TCP opcional)
 - Inicialização simples (DPR ou DataModule)
@@ -14,7 +14,7 @@ Solução de logging remoto, desacoplada e assíncrona para aplicações Delphi 
 - `uLogTypes.pas`: tipos base (níveis, item de log, etc.)
 - `uGraylogClient.pas`: cliente GELF (UDP/TCP)
 - `uLogDispatcher.pas`: fila assíncrona (`TQueue<TLogItem>`) e worker que envia JSON GELF
-- `uStackTraceHelper.pas`: integração JCL para capturar stack trace
+- `uStackTraceHelper.pas`: captura de stack trace (sem JCL)
 - `uScreenshotHelper.pas`: captura de tela usando `BitBlt`, JPEG e Base64
 - `uExceptionLogger.pas`: ponto de integração (Initialize/Finalize/HandleException/LogMessage)
 - `uLocalLog.pas`: salvamento local dos erros (imagem JPEG + TXT) e limpeza de arquivos antigos
@@ -23,10 +23,7 @@ Solução de logging remoto, desacoplada e assíncrona para aplicações Delphi 
 
 - Delphi XE2 (VCL)
 - Indy (IdUDPClient, IdTCPClient, IdGlobal) — já incluso no XE2
-- JCL (Jedi Code Library) instalado e no search path (especialmente `JclDebug`)
-- Para linha/método/unit no stack trace:
-  - Project Options → Linker → Map file = **Detailed**
-  - Manter o `.map` próximo do `.exe` ou gerar `.jdbg` com utilitários da JCL
+- `dbghelp.dll` (Windows) para tentar resolver nomes de símbolos quando disponível
 
 ## Inicialização Rápida (ERP com vários clientes)
 
@@ -44,7 +41,6 @@ begin
     'ERP 1.0.0',        // Versão do ERP
     'NOME DA EMPRESA',  // Cliente
     'FILIAL 001',       // Filial
-    'USUARIO SISTEMA',  // Usuário do sistema
     tpUDP
   );
   Application.Run;
@@ -62,13 +58,14 @@ TExceptionLogger.LogMessage(llInfo, 'Processo concluído', 'Detalhes adicionais 
 
 Obrigatórios:
 
-- `version`, `host`, `short_message`, `full_message`, `timestamp` (unix em segundos), `level` (códigos syslog)
+- `version`, `host`, `short_message`, `full_message`, `level` (códigos syslog)
 
 Adicionais (_custom fields_):
 
 - `_exception_class`, `_stacktrace`, `_user`, `_machine`, `_erp_version`, `_module`
 - `_empresa` (nome da empresa/cliente)
 - `_filial` (código ou nome da filial)
+- `_client_time` (data/hora do cliente; o timestamp é definido pelo Graylog)
 
 ## UDP vs TCP
 
@@ -117,7 +114,6 @@ Exemplo de ativação (já integrado ao `TExceptionLogger`):
 - Ajuste:
   - timeouts: `TGraylogClient.ConfigureTimeouts(Connect, Send)`
   - fila/retry: `Dispatcher.MaxQueueSize` e `Dispatcher.RetryCount` (definidos em `Initialize`)
-  - screenshot: qualidade/tamanho em `TScreenshotHelper.CaptureScreenToBase64JPEG(Quality, MaxBytes)`
   - retenção local: `TLocalLogHelper.PurgeOldLogs(Dias)` (padrão 7)
 
 ## Exemplo incluído
